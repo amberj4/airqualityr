@@ -1,0 +1,6 @@
+^.*\.Rproj$          # ignore your RStudio project file
+^\.Rproj\.user$      # ignore RStudio hidden folder
+^.*\.csv$            # ignore raw CSVs in the root (you already have inst/extdata for data)
+^.*\.txt$            # ignore other text files not in inst/extdata
+^\.git$              # ignore git folder if you’re tracking this repo
+^\.gitignore$        # ignore gitignore itself

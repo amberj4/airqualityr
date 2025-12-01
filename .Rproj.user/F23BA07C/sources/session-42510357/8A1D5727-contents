@@ -1,0 +1,12 @@
+#' Summary of a column in AirQuality dataset
+#'
+#' @param column_name Character. Name of the column in airquality dataset.
+#' @return A summary of the column.
+#' @export
+airquality_summary <- function(column_name) {
+  # Defensive programming: check if column exists
+  if (!column_name %in% colnames(airquality)) {
+    stop("Column does not exist in airquality dataset")
+  }
+  return(summary(airquality[[column_name]]))
+}

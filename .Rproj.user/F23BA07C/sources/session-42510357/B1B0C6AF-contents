@@ -1,0 +1,139 @@
+#' @title airquality_summary
+#' @description Return a tidy summary for a column in the airquality dataset.
+#' @param column_name Character scalar. Name of the column to summarize (e.g. "Ozone", "Temp").
+#' @return Named summary vector (same shape as base::summary()).
+#' @examples
+#' airquality_summary("Ozone")
+#' @export
+airquality_summary <- function(column_name) {
+  if (!is.character(column_name) || length(column_name) != 1) {
+    stop("`column_name` must be a single character string, e.g. 'Ozone'.")
+  }
+
+  if (exists("airquality", envir = parent.frame())) {
+    df <- get("airquality", envir = parent.frame())
+  } else {
+    df <- datasets::airquality
+  }
+
+  if (!column_name %in% names(df)) {
+    stop(sprintf("Column '%s' does not exist in the airquality dataset.", column_name))
+  }
+
+  vec <- df[[column_name]]
+  if (!is.numeric(vec)) {
+    vec_num <- suppressWarnings(as.numeric(vec))
+    if (all(is.na(vec_num) & !is.na(vec))) {
+      stop(sprintf("Column '%s' cannot be interpreted as numeric.", column_name))
+    } else {
+      vec <- vec_num
+    }
+  }
+
+  res <- stats::summary(vec)
+  attr(res, "na_count") <- sum(is.na(vec))
+  res
+}
+
+
+#' @title airquality_plot_scatter
+#' @description Create a clean scatter plot of two numeric variables from airquality.
+#' @param x Character scalar. Name of the x variable (default: "Temp").
+#' @param y Character scalar. Name of the y variable (default: "Ozone").
+#' @param drop_na logical. If TRUE (default) rows with NA are removed before plotting.
+#' @return ggplot2 object (invisibly). Printed on call.
+#' @examples
+#' airquality_plot_scatter("Temp", "Ozone")
+#' @import ggplot2
+#' @export
+airquality_plot_scatter <- function(x = "Temp", y = "Ozone", drop_na = TRUE) {
+  if (!is.character(x) || !is.character(y) || length(x) != 1 || length(y) != 1) {
+    stop("`x` and `y` must be single character strings naming columns.")
+  }
+
+  if (exists("airquality", envir = parent.frame())) {
+    df <- get("airquality", envir = parent.frame())
+  } else {
+    df <- datasets::airquality
+  }
+
+  required <- c(x, y)
+  if (!all(required %in% names(df))) {
+    stop(sprintf("Columns not found: %s", paste(setdiff(required, names(df)), collapse = ", ")))
+  }
+
+  for (nm in required) {
+    if (!is.numeric(df[[nm]])) {
+      new <- suppressWarnings(as.numeric(df[[nm]]))
+      if (all(is.na(new) & !is.na(df[[nm]]))) {
+        stop(sprintf("Column '%s' cannot be coerced to numeric for plotting.", nm))
+      } else {
+        df[[nm]] <- new
+      }
+    }
+  }
+
+  if (drop_na) df <- df[stats::complete.cases(df[, required]), , drop = FALSE]
+
+  p <- ggplot2::ggplot(df, ggplot2::aes_string(x = x, y = y)) +
+    ggplot2::geom_point(size = 2, alpha = 0.8) +
+    ggplot2::geom_smooth(method = "loess", se = TRUE, color = "darkred") +
+    ggplot2::labs(
+      title = paste(y, "vs", x),
+      subtitle = "Data: airquality (May–Sep 1973). LOESS smoother shown.",
+      x = x,
+      y = y
+    ) +
+    ggplot2::theme_minimal(base_size = 14)
+
+  print(p)
+  invisible(p)
+}
+
+
+#' @title airquality_plot_box
+#' @description Draw a simple boxplot of a numeric variable grouped by Month.
+#' @param var Character scalar. Column name to plot by month (default: "Ozone").
+#' @param drop_na logical. If TRUE (default) rows with NA are removed.
+#' @return ggplot2 object (invisibly). The plot is printed.
+#' @examples
+#' airquality_plot_box("Ozone")
+#' @import ggplot2
+#' @export
+airquality_plot_box <- function(var = "Ozone", drop_na = TRUE) {
+  if (!is.character(var) || length(var) != 1) stop("`var` must be a single character string.")
+
+  if (exists("airquality", envir = parent.frame())) {
+    df <- get("airquality", envir = parent.frame())
+  } else {
+    df <- datasets::airquality
+  }
+
+  if (!"Month" %in% names(df)) stop("Dataset must contain 'Month' column.")
+  if (!var %in% names(df)) stop(sprintf("Column '%s' not found in dataset.", var))
+
+  if (!is.numeric(df[[var]])) {
+    new <- suppressWarnings(as.numeric(df[[var]]))
+    if (all(is.na(new) & !is.na(df[[var]]))) {
+      stop(sprintf("Column '%s' cannot be coerced to numeric for boxplot.", var))
+    } else {
+      df[[var]] <- new
+    }
+  }
+
+  if (drop_na) df <- df[stats::complete.cases(df[, c("Month", var)]), , drop = FALSE]
+  df$Month <- factor(df$Month, levels = sort(unique(df$Month)))
+
+  p <- ggplot2::ggplot(df, ggplot2::aes_string(x = "Month", y = var)) +
+    ggplot2::geom_boxplot(outlier.size = 1) +
+    ggplot2::labs(
+      title = paste("Distribution of", var, "by Month"),
+      subtitle = "Boxplots show median, IQR, and outliers (airquality, 1973)",
+      x = "Month (numeric)",
+      y = var
+    ) +
+    ggplot2::theme_minimal(base_size = 14)
+
+  print(p)
+  invisible(p)
+}
